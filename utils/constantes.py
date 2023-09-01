@@ -11,6 +11,23 @@ from sklearn.svm import SVC
 from sklearn.datasets import make_moons
 import streamlit as st
 
+PARAM_HELPER = {
+    'interpretation': {
+        'r2_score': 'intervalle evaluation du score r2',
+        'recall': 'intervalle evaluation du score recall',
+        'f1-score': 'intervalle evaluation du score f1',
+        'accuracy': 'intervalle evaluation du score acc',
+        'mse': 'intervalle evaluation du score mse',
+    },
+    'explication': {
+        'r2_score': 'Ceci est une aide pour interpreter le r2_score',
+        'recall': 'Ceci est une aide pour interpreter le recall',
+        'f1-score': 'Ceci est une aide pour interpreter le f1-score',
+        'accuracy': 'Ceci est une aide pour interpreter le accuracy',
+        'mse': 'Ceci est une aide pour interpreter le mse',
+    }
+}
+
 STRUCTURE = {
     'classification': {
         'Regression_Logistique': {

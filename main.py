@@ -4,6 +4,7 @@ from helpers.selection import ElementChoice
 from models.model import Plotting, DataEngeenering
 from utils.constantes import TARGET
 from utils.bdd import connection_db, get_dataset_dataframe
+from utils.function import plot_metrics
 
 def intro():
     st.set_page_config(
@@ -15,7 +16,7 @@ def intro():
     return conn
 
 def header(connexion):
-    select_dataset = st.sidebar.selectbox('Choisir votre dataset', ['moons', 'diabete_inde', 'vin'])
+    select_dataset = st.sidebar.selectbox('Choisir votre dataset', ['diabete_inde', 'moons', 'vin'])
     df = get_dataset_dataframe(select_dataset, connexion)
     targetor = DataEngeenering(df=df)
     return df, targetor.target_type, select_dataset
@@ -23,11 +24,17 @@ def header(connexion):
 def sidebar(target_type):
     selector = ElementChoice(model_type=target_type)
     choice_algo = st.sidebar.selectbox('Selectionner algorithme', selector.user_interface['algorithme'])
-    params_model_dict = selector.create_input_from_model(choice_algo, target_type)
-    return choice_algo, params_model_dict
+    Xval = st.sidebar.toggle('Cross-validation ?', value=False)
+    grid_search_auto = st.sidebar.toggle('Auto parametrage ?', value=False)
+    if grid_search_auto is False:
+        params_model_dict = selector.create_input_from_model(choice_algo, target_type)
+        return choice_algo, params_model_dict, Xval
+    else:
+        params_model_dict = None
+        return choice_algo, params_model_dict, Xval
 
 def analyse(data, model_name, target_type, hyperparams, select_dataset, test_size=0.35):
-    st.dataframe(data)
+    # instances
     X = data.drop(columns=TARGET)
     y = data[TARGET]
     predictor = Plotting(
@@ -36,13 +43,22 @@ def analyse(data, model_name, target_type, hyperparams, select_dataset, test_siz
         model_name=model_name,
         target_type=target_type,
         hyperparams=hyperparams,
+        select_dataset=select_dataset,
         test_size=test_size
     )
     result = predictor.prediction
+
+    # construction UI/UX
+    with st.expander("Dataframe"):
+        st.dataframe(data)
+    with st.expander("Analyse descritive"):
+        st.dataframe(data.describe())
     if isinstance(result, dict) and len(result) == 2:
         st.caption(result['info'])
         st.caption(result['erreur'])
     else:
+        with st.expander("Metrics d'évaluation du modèle"):
+            plot_metrics(predictor.metrics.metrics_calcul)
         with st.expander("Graphiques évaluations des metrics"):
             df, df1 = predictor.plotting_values_training()
             df_test, df1_test = predictor.plotting_values_test()
@@ -60,9 +76,16 @@ def analyse(data, model_name, target_type, hyperparams, select_dataset, test_siz
             with col4:
                 st.caption("Test fold: valeurs prédites")
                 predictor.create_chart_scatter(df1_test)
+            # saving
+            st.markdown('Souhaitez-vous sauvegarder votre model ?')
+            save_model = st.button('Sauvegarder')
+            if save_model:
+                st.caption('Votre model a été sauvegardé')
+                st.balloons()
     return None
 
 def footer(connexion):
+
     connexion.close()
     return None
 
@@ -70,7 +93,7 @@ def footer(connexion):
 if __name__ == '__main__':
     conn = intro()
     data, target_type, select_dataset = header(connexion=conn)
-    algo, hyperparams = sidebar(target_type=target_type)
+    algo, hyperparams, Xval = sidebar(target_type=target_type)
     analyse(
         data=data,
         model_name=algo,

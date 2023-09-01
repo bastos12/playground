@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from helpers.selection import ElementChoice
+from helpers.metrics import MetricsScorer
 import altair as alt
 
 class DataEngeenering:
@@ -100,6 +101,7 @@ class Plotting(DataPredict):
         model_name,
         target_type,
         hyperparams,
+        select_dataset,
         test_size=0.35
     ):
         super().__init__(
@@ -111,31 +113,56 @@ class Plotting(DataPredict):
             test_size=test_size
         )
         self.prediction = self.predict()
+        self.graph_general = True if select_dataset != 'moons' else False
+        self.metrics = MetricsScorer(
+            target_type=target_type,
+            dict_value=self.prediction
+        )
 
     def plotting_values_training(self):
-        df = pd.DataFrame({
-            'X': self.prediction['X_train'][:, 0],
-            'Y': self.prediction['X_train'][:, 1],
-            'Classe': self.prediction['y_train']
-        })
-        df_1 = pd.DataFrame({
-            'X': self.prediction['X_train'][:, 0],
-            'Y': self.prediction['X_train'][:, 1],
-            'Classe': self.prediction['y_pred_train']
-        })
+        if self.graph_general:
+            df = pd.DataFrame({
+                'X': self.prediction['X_train'][:, 0],
+                'Classe': self.prediction['y_train']
+            })
+            df_1 = pd.DataFrame({
+                'X': self.prediction['X_train'][:, 0],
+                'Classe': self.prediction['y_pred_train']
+            })
+        else:
+            df = pd.DataFrame({
+                'X': self.prediction['X_train'][:, 0],
+                'Y': self.prediction['X_train'][:, 1],
+                'Classe': self.prediction['y_train']
+            })
+            df_1 = pd.DataFrame({
+                'X': self.prediction['X_train'][:, 0],
+                'Y': self.prediction['X_train'][:, 1],
+                'Classe': self.prediction['y_pred_train']
+            })
         return df, df_1
 
     def plotting_values_test(self):
-        df = pd.DataFrame({
-            'X': self.prediction['X_test'][:, 0],
-            'Y': self.prediction['X_test'][:, 1],
-            'Classe': self.prediction['y_test']
-        })
-        df_1 = pd.DataFrame({
-            'X': self.prediction['X_test'][:, 0],
-            'Y': self.prediction['X_test'][:, 1],
-            'Classe': self.prediction['y_pred_test']
-        })
+        if self.graph_general:
+            df = pd.DataFrame({
+                'X': self.prediction['X_test'][:, 0],
+                'Classe': self.prediction['y_test']
+            })
+            df_1 = pd.DataFrame({
+                'X': self.prediction['X_test'][:, 0],
+                'Classe': self.prediction['y_pred_test']
+            })
+        else:
+            df = pd.DataFrame({
+                'X': self.prediction['X_test'][:, 0],
+                'Y': self.prediction['X_test'][:, 1],
+                'Classe': self.prediction['y_test']
+            })
+            df_1 = pd.DataFrame({
+                'X': self.prediction['X_test'][:, 0],
+                'Y': self.prediction['X_test'][:, 1],
+                'Classe': self.prediction['y_pred_test']
+            })
         return df, df_1
 
     def _get_palette(self, df):
