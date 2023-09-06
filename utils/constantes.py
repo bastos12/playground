@@ -53,7 +53,24 @@ STRUCTURE = {
         },
         'Random_Forest': {
             'model': RandomForestClassifier(),
-            'hyperparameters': {}
+            'hyperparameters': {
+                'n_estimators': {
+                    'type': int,
+                    'values': [10, 100, 500, 1000]
+                },
+                'criterion': {
+                    'type': str,
+                    'values': ["gini", "entropy", "log_loss"],
+                },
+                'max_depth': {
+                    'type': str,
+                    'values': [1, 5, 10, 50],
+                },
+                'class_weight': {
+                    'type': str,
+                    'values': ['balanced', 'balanced_subsample']
+                }
+            }
         },
         'KNeighbours_Classifier': {
             'model': KNeighborsClassifier(),

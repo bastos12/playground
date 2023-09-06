@@ -56,5 +56,3 @@ class ElementChoice:
     def choice_algorithme(self, model_type) -> list:
         return self._split_name_structure_algorithme(model_type)
 
-    def choice_dataset(self):
-        pass

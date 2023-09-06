@@ -1,3 +1,5 @@
+from time import sleep
+
 import pandas as pd
 import streamlit as st
 import numpy as np
@@ -6,6 +8,8 @@ from sklearn.preprocessing import StandardScaler
 from helpers.selection import ElementChoice
 from helpers.metrics import MetricsScorer
 import altair as alt
+from sklearn.model_selection import GridSearchCV
+from stqdm import stqdm
 
 class DataEngeenering:
 
@@ -40,7 +44,7 @@ class DataSplitter:
 
 class DataPredict(DataSplitter, ElementChoice):
 
-    def __init__(self, features, target, target_type, model_name, hyperparams, test_size=0.35):
+    def __init__(self, features, target, target_type, model_name, hyperparams, grid_search_auto=False, test_size=0.35):
         DataSplitter.__init__(
             self,
             features=features,
@@ -52,15 +56,36 @@ class DataPredict(DataSplitter, ElementChoice):
             model_type=target_type
         )
         self.hyperparams = hyperparams
-        self.model = self._get_model_instance(
-            model_name=model_name,
-            target_type=target_type
-        )
+        if grid_search_auto is False:
+            self.model = self._get_model_instance(
+                model_name=model_name,
+                target_type=target_type
+            )
+        else:
+            self.model = self._get_models(
+                target_type=target_type,
+            )
 
     def _get_model_instance(self, model_name, target_type):
         instance_name = self._reverse_split_name_structure_algorithme(model_name)
         model = self.structure[target_type][instance_name]['model']
         return model.set_params(**self.hyperparams)
+
+    def _get_models(self, target_type):
+        models = []
+        model = None
+        param_dict = {}
+        for i in self.structure[target_type]:
+            for info in self.structure[target_type][i]:
+                if info == 'model':
+                    model = self.structure[target_type][i][info]
+                if info == 'hyperparameters':
+                    parameters = {}
+                    for params in self.structure[target_type][i][info]:
+                        parameters[params] = self.structure[target_type][i][info][params]['values']
+                    param_dict = parameters
+                models.append({'model': model, 'params': param_dict})
+        return models
 
     def _fitting(self):
         X_train, X_test, y_train, y_test = self.split()
@@ -91,6 +116,30 @@ class DataPredict(DataSplitter, ElementChoice):
                 'erreur': f"Détails: {e}"
             }
 
+    def grid_search_prediction(self, X, y, cv=5):
+        result = []
+        try:
+            with st.spinner('Recherche des meilleurs combinaisons algorithme/hyperparamètres'):
+                for _mod in self.model:
+                    if _mod['model'] and _mod['params']:
+                        try:
+                            clf = GridSearchCV(_mod['model'], _mod['params'], cv=cv)
+                            clf.fit(X, y)
+                            result.append({
+                                'model_name': _mod['model'],
+                                'best_score': clf.best_score_,
+                                'best_params': clf.best_params_
+                            })
+                        except:
+                            pass
+            return result
+
+        except:
+            return {
+                'info': "Erreur lors de la recherche des paramètres et de l'algorihme",
+                'erreur': f"Détails: a venir"
+            }
+
 
 class Plotting(DataPredict):
 
@@ -102,6 +151,7 @@ class Plotting(DataPredict):
         target_type,
         hyperparams,
         select_dataset,
+        GridSearch=False,
         test_size=0.35
     ):
         super().__init__(
@@ -110,9 +160,19 @@ class Plotting(DataPredict):
             target_type=target_type,
             model_name=model_name,
             hyperparams=hyperparams,
+            grid_search_auto=GridSearch,
             test_size=test_size
         )
-        self.prediction = self.predict()
+
+        self.GridSearch = GridSearch
+        if GridSearch:
+            self.prediction = self.grid_search_prediction(
+                X=features,
+                y=target
+            )
+        else:
+            self.prediction = self.predict()
+
         self.graph_general = True if select_dataset != 'moons' else False
         self.metrics = MetricsScorer(
             target_type=target_type,
